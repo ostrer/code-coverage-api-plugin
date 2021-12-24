@@ -3,6 +3,7 @@ package io.jenkins.plugins.coverage;
 import com.google.common.collect.Lists;
 import hudson.FilePath;
 import hudson.model.Result;
+import hudson.slaves.DumbSlave;
 import io.jenkins.plugins.coverage.adapter.CoberturaReportAdapter;
 import io.jenkins.plugins.coverage.adapter.JacocoReportAdapter;
 import io.jenkins.plugins.coverage.detector.AntPathReportDetector;
@@ -12,8 +13,10 @@ import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Assert;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import java.io.File;
@@ -21,6 +24,8 @@ import java.util.Objects;
 
 public class CoveragePublisherPipelineTest {
 
+    @ClassRule
+    public static BuildWatcher bw = new BuildWatcher();
 
     @Rule
     public JenkinsRule j = new JenkinsRule();
@@ -314,14 +319,16 @@ public class CoveragePublisherPipelineTest {
 
     @Test
     public void testRelativePathSourceFile() throws Exception {
+	DumbSlave agent = j.createOnlineSlave();
         CoverageScriptedPipelineScriptBuilder builder = CoverageScriptedPipelineScriptBuilder.builder()
+                .onAgent(agent)
                 .setEnableSourceFileResolver(true);
 
         CoberturaReportAdapter adapter = new CoberturaReportAdapter("cobertura-coverage.xml");
         builder.addAdapter(adapter);
 
         WorkflowJob project = j.createProject(WorkflowJob.class, "coverage-pipeline-test");
-        FilePath workspace = j.jenkins.getWorkspaceFor(project);
+        FilePath workspace = agent.getWorkspaceFor(project);
 
         Objects.requireNonNull(workspace)
                 .child("cobertura-coverage.xml")
